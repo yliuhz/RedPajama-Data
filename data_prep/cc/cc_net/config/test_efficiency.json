@@ -11,5 +11,6 @@
     "execution": "local",
     "output_dir": "test_efficiency",
     "target_size": "4G",
-    "cache_dir": "test_efficiency/wet_cache"
+    "cache_dir": "test_efficiency/wet_cache",
+    "hash_in_mem": 5
 }
