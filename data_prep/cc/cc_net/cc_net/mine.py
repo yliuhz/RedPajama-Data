@@ -367,7 +367,11 @@ def mine(conf: Config) -> List[Path]:
         hashes_files = repeat([])
 
     print(f"I am going to enter ex(_mine_shards)")
+    time_start = time.time()
     ex(_mine_shard, repeat(conf), hashes_files, *_transpose(missing_outputs))
+    time_end = time.time()
+
+    print(f"Mine time= {time_end-time_start:.2f} sec")
 
     assert all(o.exists() for o in outputs)
     return outputs
@@ -663,9 +667,9 @@ def main(config: str = "base", **config_as_dict: Any) -> None:
 
     print(f"Will run cc_net.mine.main with the following config:", conf)
 
-    time_start = time.time()
+    # time_start = time.time()
     all_files = mine(conf)
-    time_end = time.time()
+    # time_end = time.time()
 
     print(f"Total mine time= {time_end-time_start:.2f} sec")
 
