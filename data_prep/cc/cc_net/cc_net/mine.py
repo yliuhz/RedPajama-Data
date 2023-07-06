@@ -41,8 +41,17 @@ DEFAULT_PIPELINE = [
     "lm",
     "pp_bucket",
     "drop",
-    "split_by_lang",
+    "split_by_segment",
 ]
+
+import logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(process)d:%(name)s - %(funcName)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
+)
+
+logger = logging.getLogger(__name__)
 
 
 class Config(NamedTuple):
@@ -194,14 +203,16 @@ REPRODUCE_CONFIG = Config(
 
 TEST_CONFIG = BASE_CONFIG._replace(
     config_name="test",
-    dump="2019-09",
+    dump="2020-16",
     output_dir=Path("test_data"),
     execution="local",
-    num_shards=4,
+    num_shards=128,
     num_segments_per_shard=1,
-    hash_in_mem=2,
-    mine_num_processes=2,
-    lang_whitelist=["de", "it", "fr"],
+    hash_in_mem=200, # 2
+    mine_num_processes=8, # 2
+    # lang_whitelist=["de", "it", "fr"],
+    lang_whitelist=["en"],
+    lm_languages=["en"],
     target_size="32M",
     cleanup_after_regroup=False,
     cache_dir=Path("test_data/wet_cache"),
@@ -217,6 +228,9 @@ PREDEF_CONFIGS = {
     "augment": BASE_CONFIG._replace(
         config_name="augment", dump="2019-13", lang_blacklist=["en"]
     ),
+    "test_slow_hash": TEST_CONFIG._replace(pipeline=["lid"], cache_dir=Path("test_data_slow_hash/wet_cache"), output_dir=Path("test_data_slow_hash"), num_shards=4),
+    "test_download": TEST_CONFIG._replace(pipeline=["lid"], cache_dir=Path("test_data_download/wet_cache"), output_dir=Path("test_data_download"), num_shards=8, num_segments_per_shard=2),
+    "test_lazy": TEST_CONFIG._replace(cache_dir=Path("test_lazy/wet_cache"), output_dir=Path("test_lazy"), num_shards=4, num_segments_per_shard=-1)
 }
 
 
@@ -261,7 +275,7 @@ def hashes(conf: Config) -> List[Path]:
     hashes_dir.mkdir(parents=True, exist_ok=True)
     # With FlatHashSet we need ~2Gb of RAM / shard, but we need to account for
     # overhead due to how the dynamic allocation works.
-    ex = conf.get_executor(f"hashes_{conf.dump}", mem_gb=4, timeout_hour=6, cpus=2)
+    ex = conf.get_executor(f"hashes_{conf.dump}", mem_gb=4, timeout_hour=6, cpus=8) #cpus=2
     ex(_hashes_shard, repeat(conf), *_transpose(missing_outputs))
 
     # Wait a bit so that files appears on the disk.
@@ -284,6 +298,8 @@ HASHES_IN_MEM = [0, 1, 2, 5, 10, 20, 50, 100, 200, 400]
 
 
 def mine(conf: Config) -> List[Path]:
+    time_start = time.time()
+
     """Remove dups, run LID and LMs, and split by lang and quality."""
     mined_dir = conf.get_mined_dir()
     if conf.min_shard == -1:
@@ -335,15 +351,22 @@ def mine(conf: Config) -> List[Path]:
         cpus=conf.mine_num_processes + 1,
     )
 
+    time_end = time.time()
+    print(f"Preprocessing time= {time_end-time_start:.2f} sec")
+
     # Compute hashes firsts.
     if "dedup" in conf.pipeline:
+        time_start = time.time()
         hashes_groups = list(jsonql.grouper(hashes(conf), conf.hash_in_mem))
         hashes_files: Iterable[List[Path]] = [
             hashes_groups[shard // conf.hash_in_mem] for shard, o in missing_outputs
         ]
+        time_end = time.time()
+        print(f"Hash time= {time_end-time_start:.2f} sec")
     else:
         hashes_files = repeat([])
 
+    print(f"I am going to enter ex(_mine_shards)")
     ex(_mine_shard, repeat(conf), hashes_files, *_transpose(missing_outputs))
 
     assert all(o.exists() for o in outputs)
@@ -356,7 +379,8 @@ def _get_segment(tmp_output: Path, doc: dict) -> str:
 
 
 def _mine_shard(conf: Config, hashes: List[Path], shard: int, output: Path) -> str:
-    print(conf.pipeline)
+    logger.info(f">> configs: {conf.pipeline}")
+
     assert conf.pipeline
     tmp_output = tmp(output)
     if "hashes" in conf.experiments:
@@ -435,7 +459,9 @@ def _mine_shard(conf: Config, hashes: List[Path], shard: int, output: Path) -> s
     )
 
     pipeline = filter(None, (steps[s] for s in conf.pipeline))
+    # pipeline_dict = {steps[s]:s for s in zip(conf.pipeline)}
 
+    logger.info("?? I am running jsonql.run_pipelines")
     jsonql.run_pipes(
         *pipeline,
         inputs=cc_shard,
@@ -554,6 +580,7 @@ def move_segments(conf: Config, all_dirs: Sequence[Path]) -> Path:
 
 def _validate_test(conf: Config, output_dir: Path, generate: bool = False):
     stats: Dict[str, dict] = {}
+    print(f"output_dir: {output_dir}")
     for file in sorted(output_dir.glob("*.json.gz")):
         fname = "/".join((file.parent.name, file.name))
         # The order of documents is not guaranteed inside a shard,
@@ -577,6 +604,7 @@ def _validate_test(conf: Config, output_dir: Path, generate: bool = False):
 
     expected_stats: Dict[str, dict] = {}
     if stats_file.exists():
+        print(f"Read from stats_file: {stats_file}")
         expected_stats = json.loads(stats_file.read_text())
 
     if expected_stats == stats:
@@ -635,20 +663,30 @@ def main(config: str = "base", **config_as_dict: Any) -> None:
 
     print(f"Will run cc_net.mine.main with the following config:", conf)
 
+    time_start = time.time()
     all_files = mine(conf)
+    time_end = time.time()
+
+    print(f"Total mine time= {time_end-time_start:.2f} sec")
+
     if conf.will_split:
         assert all_files
         assert all(d.is_dir() for d in all_files)
         all_dirs = all_files
+
+        time_start = time.time()
         if "split_by_lang" in conf.pipeline:
             # Only try regrouping if we split the shards.
             regroup(conf, all_dirs)
         elif "split_by_segment" in conf.pipeline:
             # If we split by segment then regrouping is trivial, since segments appear in only one shard.
             move_segments(conf, all_dirs)
+        time_end = time.time()
 
-    if conf.config_name == "test":
-        _validate_test(conf, conf.get_mined_dir(regroup=True))
+        print(f"Split time= {time_end-time_start:.2f} sec")
+
+    # if conf.config_name == "test":
+    #     _validate_test(conf, conf.get_mined_dir(regroup=True))
 
 
 if __name__ == "__main__":

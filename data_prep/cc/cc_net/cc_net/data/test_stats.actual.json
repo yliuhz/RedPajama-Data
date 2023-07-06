@@ -1,0 +1,26 @@
+{
+  "2019-09/en_head_0000.json.gz": {
+    "size": 34351473,
+    "checksum": "a6853dd002c28ccf5fae9b0cf05a6787733dc804"
+  },
+  "2019-09/en_middle_0000.json.gz": {
+    "size": 69919812,
+    "checksum": "3a6e857fdb63116954cd4f70f2fde78a2f4d0e15"
+  },
+  "2019-09/en_tail_0000.json.gz": {
+    "size": 63305139,
+    "checksum": "a3aedd641764dd9eb541fead0c9aa8b754180045"
+  },
+  "2019-09/en_tail_0001.json.gz": {
+    "size": 65351699,
+    "checksum": "78655430461e04062036265ed329e7700f52ccff"
+  },
+  "2019-09/en_tail_0002.json.gz": {
+    "size": 62807262,
+    "checksum": "aefd2f36477005664534b9525cb1d975921e8100"
+  },
+  "2019-09/en_tail_0003.json.gz": {
+    "size": 58757160,
+    "checksum": "e95e426dd3b564c737f48ec11fa57678c8832865"
+  }
+}

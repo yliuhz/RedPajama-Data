@@ -32,6 +32,14 @@ DISABLE_MULTI_PROCESSING = False
 
 FilesOrDir = Union[List[Path], Path]
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(process)d:%(name)s - %(funcName)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
+)
+
+logger = logging.getLogger(__file__)
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -274,11 +282,22 @@ def remove_duplicates_sharded(
     tmp_directory.cleanup()
 
 
+def _compute_hashes_core(line):
+
+    ret = hashlib.sha1(bytes(normalize_for_dedup(line), encoding="utf-8")).digest()[
+                :HASH_SIZE
+            ]
+    return ret
+
+
 def compute_hashes(content) -> Optional[np.ndarray]:
     if not content:
         return None
     lines = content.split("\n")
     # save hashes as bytes but reinterpret them as uint64.
+
+    # logger.info(f"Len of lines= {len(lines)}")
+
     hashes = np.fromiter(
         (
             hashlib.sha1(bytes(normalize_for_dedup(l), encoding="utf-8")).digest()[

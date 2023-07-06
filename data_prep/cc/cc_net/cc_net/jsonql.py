@@ -48,8 +48,8 @@ import requests
 from typing_extensions import Protocol
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(process)d:%(name)s - %(message)s",
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(process)d:%(name)s - %(funcName)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M",
 )
 
@@ -389,7 +389,7 @@ def run_pipes(
     inputs: Iterable[dict] = None,
     file: ReadableFileLike = None,
     output: WritableFileLike = None,
-    processes: int = 1,
+    processes: int = -1,
     chunksize: int = 10_000,
 ):
     """
@@ -405,6 +405,10 @@ def run_pipes(
     - processes: number of processes to use. -1 means all CPU available.
     - chunksize: chunksize for multiprocessing.Pool.imap_unordered
     """
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"I am inside jsonql.run_pipelines")
+
     expect_json = len(fns) and isinstance(fns[0], Transformer) and fns[0].expect_json
     if expect_json and inputs is None:
         fns = (JsonReader(),) + fns
@@ -428,13 +432,13 @@ def run_pipes(
 
     with contextlib.suppress(BrokenPipeError), contextlib.ExitStack() as stack:
         if transformers:
-            log(f"preparing {transformers}")
+            logger.info(f"preparing {transformers}")
             transform = stack.enter_context(compose(transformers))
             if processes <= 1:
                 data = transform.map(data)
             else:
                 p = multiprocessing.current_process()
-                log(f"Will start {processes} processes from {p.name}, Pid: {p.pid}")
+                logger.info(f"Will start {processes} processes from {p.name}, Pid: {p.pid}")
                 pool = stack.enter_context(
                     multiprocessing.Pool(
                         processes=processes,
@@ -447,10 +451,16 @@ def run_pipes(
                 )
 
         for fn in pipes:
+            time_start = time.time()
+
             if isinstance(fn, Transformer):
                 data = fn.map(data)
             else:
                 data = fn(data)
+
+            time_end = time.time()
+            logger.info(f"{fn.__class__.__name__} time= {time_end-time_start:.2f} sec")
+
 
         write_jsons(data, output)
 

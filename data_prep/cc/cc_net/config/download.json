@@ -1,0 +1,14 @@
+{
+    "hash_in_mem": 2,
+    "dump": "2023-14",
+    "num_shards": 100,
+    "num_segments_per_shard": -1,
+    "pipeline": [
+        "lid"
+    ],
+    "metadata": "download_data/mined_by_segment",
+    "execution": "local",
+    "output_dir": "download_data",
+    "target_size": "32M",
+    "cache_dir": "download_data/wet_cache"
+}

@@ -1,3 +1,17 @@
+
+# cc_net
+**/hashes
+**/logs
+**/mined
+**/mined_split
+**/wet_cache
+data_prep/cc/cc_net/data
+data_prep/cc/cc_net/downloaded_data
+data_prep/cc/cc_net/bin
+data_prep/cc/cc_net/third_party
+
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

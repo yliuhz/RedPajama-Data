@@ -22,7 +22,11 @@ from cc_net import jsonql
 
 WET_URL_ROOT = "https://data.commoncrawl.org"
 
-
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(process)d:%(name)s - %(funcName)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
+)
 logger = logging.getLogger(__name__)
 
 
@@ -259,13 +263,15 @@ class CCShardReader(CCSegmentsReader):
             return self._segments
         segments = cc_segments(self.dump, self.cache_dir)
         n = len(segments)
-        if self.num_shards < 0:
+        if self.num_shards <= 0:
             self.num_shards = n // self.num_segments_per_shard
         i_min = (self.shard * n) // self.num_shards
         i_max = ((self.shard + 1) * n) // self.num_shards
         if self.num_segments_per_shard > 0:
             i_max = min(i_max, i_min + self.num_segments_per_shard)
         self._segments = segments[i_min:i_max]
+
+        logger.info(f"Total segments= {n}, num_shards= {self.num_shards}, imin={i_min}, imax={i_max}")
         return self._segments
 
 
