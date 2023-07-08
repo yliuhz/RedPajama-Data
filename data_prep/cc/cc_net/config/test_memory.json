@@ -1,12 +1,12 @@
 {
     "dump": "2019-09",
-    "num_shards": 128,
+    "num_shards": 4,
     "lang_whitelist": ["zh","en","es","fr","it","de","ja","ko"],
     "num_segments_per_shard": 1,
     "pipeline": [
         "dedup"
     ],
-    "execution": "local",
+    "execution": "debug",
     "output_dir": "test_memory",
     "target_size": "4G",
     "cache_dir": "test_memory/wet_cache",

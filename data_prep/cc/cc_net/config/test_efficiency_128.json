@@ -13,9 +13,10 @@
         "drop",
         "split_by_segment"
     ],
-    "execution": "debug",
+    "execution": "local",
     "output_dir": "test_efficiency_128",
     "target_size": "4G",
     "cache_dir": "test_efficiency/wet_cache",
-    "hash_in_mem": 5
+    "hash_in_mem": 5,
+    "mine_num_processes": 1
 }
