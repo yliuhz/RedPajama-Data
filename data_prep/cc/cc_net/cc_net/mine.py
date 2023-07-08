@@ -20,6 +20,7 @@ from collections import defaultdict
 from itertools import repeat
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
+import os
 
 import func_argparse
 
@@ -28,6 +29,8 @@ from cc_net import dedup, execution, jsonql, minify, perplexity, process_wet_fil
 from cc_net import regroup as regroup_module
 from cc_net import split_by_lang
 from cc_net.execution import Executor
+
+# from memory_profiler import profile
 
 # Constant
 FILE_DIR = Path(__file__).parent
@@ -206,7 +209,7 @@ TEST_CONFIG = BASE_CONFIG._replace(
     dump="2019-09",
     output_dir=Path("test_efficiency"),
     execution="local",
-    num_shards=96,
+    num_shards=4,
     num_segments_per_shard=1,
     hash_in_mem=5, # 2
     # mine_num_processes=8, # 2
@@ -216,7 +219,7 @@ TEST_CONFIG = BASE_CONFIG._replace(
     target_size="4G",
     # cleanup_after_regroup=False,
     cache_dir=Path("test_efficiency/wet_cache"),
-    mine_num_processes=64,
+    mine_num_processes=32,
     pipeline=["dedup"] # "dedup", "lid", "keep_lang",
 )
 
@@ -298,7 +301,6 @@ def _hashes_shard(conf: Config, shard: int, output: Path):
 
 
 HASHES_IN_MEM = [0, 1, 2, 5, 10, 20, 50, 100, 200, 400]
-
 
 def mine(conf: Config) -> List[Path]:
     time_start = time.time()
@@ -659,6 +661,19 @@ def get_main_parser() -> ArgumentParser:
     p.set_defaults(__command=main)
     return p
 
+def check_config(conf):
+
+    assert conf.num_shards > 0 or conf.num_segments_per_shard > 0, f"Either or both of `num_shards`({conf.num_shards}) and `num_segments_per_shard`({conf.num_segments_per_shard}) should be positive. Please check you config."
+
+    TRUE_CPUS=os.cpu_count()
+    assert conf.mine_num_processes * conf.num_shards <= TRUE_CPUS, f"Too large `mine_num_processes`({conf.mine_num_processes}) will take long long time to release the CPU resources after the jobs finished. Please reduce `mine_num_processes` in your config."
+
+    if conf.hash_in_mem > 5:
+        warnings.warn(f"You set `hash_in_mem` a large number ({conf.hash_in_mem}>5). It may burst the memory and make the program crash.")
+
+    if conf.num_shards > TRUE_CPUS:
+        warnings.warn(f"You set `num_shards`({conf.num_shards}) larger than the number of cpu cores({TRUE_CPUS}). It may cause unpredictable bugs.")
+    
 
 def main(config: str = "base", **config_as_dict: Any) -> None:
     # Use the given 'config' as default value.
@@ -673,6 +688,8 @@ def main(config: str = "base", **config_as_dict: Any) -> None:
             f"Choose from ({', '.join(PREDEF_CONFIGS)}) or give an existing .json file."
         )
     conf = conf._replace(**{k: v for (k, v) in config_as_dict.items() if v is not None})
+
+    check_config(conf)
 
     print(f"Will run cc_net.mine.main with the following config:", conf)
 

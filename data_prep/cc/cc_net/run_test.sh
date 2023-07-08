@@ -15,4 +15,11 @@ else
     echo "resume from last run"
 fi
 
-python -u -m cc_net --config config/test_efficiency_1998.json 2>&1 | tee -a logs/test_efficiency_96.log
+python -u -m cc_net --config config/test_efficiency_1998.json 2>&1 | tee -a logs/test_efficiency_1998.log
+
+# Track the memory usage
+
+# mprof run -C python -u -m cc_net --config config/test_efficiency_1998.json 2>&1 | tee -a logs/test_efficiency_96.log
+
+# TODO: 与log冲突？
+# memray run -m cc_net --config config/test_efficiency_1998.json 2>&1 | tee -a logs/test_efficiency_96.log

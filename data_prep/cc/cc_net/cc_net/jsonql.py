@@ -47,6 +47,8 @@ import psutil  # type: ignore
 import requests
 from typing_extensions import Protocol
 
+# from memory_profiler import profile
+
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s %(levelname)s %(process)d:%(name)s - %(funcName)s - %(message)s",
@@ -389,7 +391,6 @@ def run_pipe(
     output = output or Path(kwargs.pop("output", "-"))
 
     return run_pipes(as_pipe(command, kwargs), file=file, output=output)
-
 
 def run_pipes(
     *fns: Union[Transformer, Callable[[Iterable], Iterable]],
