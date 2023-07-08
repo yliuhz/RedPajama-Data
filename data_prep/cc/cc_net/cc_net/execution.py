@@ -71,7 +71,7 @@ def get_executor(
         ex.parameters['timeout_min'] = int(timeout_hour * 60)
         # ex.parameters['timeout_min'] = int(10)
         # LocalExecutor doesn't respect task_parallelism
-        logger.info(f"timeout_min= {ex.parameters['timeout_min']}")
+        logger.info(f"timeout_min= {ex.parameters['timeout_min']} min")
         return functools.partial(custom_map_array, ex, task_parallelism)
     if ex.cluster == "debug":
         ex.parameters['timeout_min'] = int(timeout_hour * 60)
