@@ -17,6 +17,13 @@ from typing import Callable, Dict, Iterable, List, Optional, Sequence, Sized
 import submitit
 from typing_extensions import Protocol
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(process)d:%(name)s - %(funcName)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
+)
+
+logger = logging.getLogger(__name__)
 
 class Executor(Protocol):
     def __call__(self, function: Callable[..., str], *args: Iterable) -> None:
@@ -62,11 +69,16 @@ def get_executor(
 
     if ex.cluster == "local":
         ex.parameters['timeout_min'] = int(timeout_hour * 60)
+        # ex.parameters['timeout_min'] = int(10)
         # LocalExecutor doesn't respect task_parallelism
+        logger.info(f"timeout_min= {ex.parameters['timeout_min']}")
         return functools.partial(custom_map_array, ex, task_parallelism)
     if ex.cluster == "debug":
         ex.parameters['timeout_min'] = int(timeout_hour * 60)
         return debug_executor
+    
+    
+    
 
     # We are on slurm
     if task_parallelism == -1:

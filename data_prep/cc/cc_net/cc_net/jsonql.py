@@ -242,10 +242,17 @@ class Transformer:
         assert self.ready, f"{self} is not ready."
         if x is None:
             return
+        
+        self.log(f"I am in do in transformer")
+        time_start = time.time()
         y = self.do(x)
+        time_end1 = time.time()
+        self.log(f"I have done in {time_end1-time_start:.2f} sec")
         self.processed += 1
         if time.time() - self.__last_log > self._log_freq:
             self.log_summary()
+        time_end2 = time.time()
+        self.log(f"I have output log in {time_end2-time_end1:.2f} sec")
         return y
 
     def do(self, x):
@@ -389,7 +396,7 @@ def run_pipes(
     inputs: Iterable[dict] = None,
     file: ReadableFileLike = None,
     output: WritableFileLike = None,
-    processes: int = -1,
+    processes: int = 1,
     chunksize: int = 10_000,
 ):
     """
@@ -406,7 +413,7 @@ def run_pipes(
     - chunksize: chunksize for multiprocessing.Pool.imap_unordered
     """
     
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(__file__)
     logger.info(f"I am inside jsonql.run_pipelines")
 
     expect_json = len(fns) and isinstance(fns[0], Transformer) and fns[0].expect_json
@@ -461,9 +468,13 @@ def run_pipes(
             time_end = time.time()
             logger.info(f"{fn.__class__.__name__} time= {time_end-time_start:.2f} sec")
 
-
+        logger.info(f"I am writing jsons to {output}")
+        time_start = time.time()
         write_jsons(data, output)
+        time_end = time.time()
+        logger.info(f"Done write jsons to {output} in {time_end-time_start:.2f} sec")
 
+    logger.info(f"I have exit to end of run_pipes")
 
 # Allows to share transformer acroos subprocess.
 # Used by `run_pipes`

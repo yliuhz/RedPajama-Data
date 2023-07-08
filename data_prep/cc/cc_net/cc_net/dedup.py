@@ -427,10 +427,15 @@ class DuplicatesRemover(jsonql.Transformer):
         )
 
     def do(self, doc: dict) -> Optional[dict]:
+        time_start = time.time()
+
         content = doc.get(self.field)
         if not content:
             return None
         doc_hashes = compute_hashes(content)
+
+        time_end1 = time.time()
+        logger.info(f"dup do step 1: {time_end1-time_start:.2f} sec")
 
         assert self.duplicates is not None
         seen = (
@@ -445,9 +450,16 @@ class DuplicatesRemover(jsonql.Transformer):
         doc_hashes = doc_hashes * keep
         self.n_lines += keep.size
         self.n_lines_kept += kept
+
+        time_end2 = time.time()
+        logger.info(f"dup do step 2: {time_end2-time_end1:.2f} sec")
+
         chars, kept_chars = finalize_doc(doc, self.field, hashes=doc_hashes)
         self.n_chars += chars
         self.n_chars_kept += kept_chars
+
+        time_end3 = time.time()
+        logger.info(f"dup do step 3: {time_end3-time_end2:.2f} sec")
         return doc
 
     def summary(self) -> List[str]:
@@ -455,8 +467,9 @@ class DuplicatesRemover(jsonql.Transformer):
         end_time = time.time()
         n_lines_kept, n_lines, n_docs = self.n_lines_kept, self.n_lines, self.processed
         speed = n_docs / (end_time - self.start_time)
+        time_spend = end_time - self.start_time
         summ.append(
-            f"Processed {self.n_lines} lines in {n_docs} docs. [{speed:.1f} doc/s]"
+            f"Processed {self.n_lines} lines in {n_docs} docs. [{speed:.1f} doc/s. Time= {time_spend:.2f} sec]"
         )
         selectivity = self.n_lines_kept / self.n_lines if n_lines else 0
         summ.append(f"Kept {n_lines_kept} lines out of {n_lines} ({selectivity:.1%}).")

@@ -203,19 +203,21 @@ REPRODUCE_CONFIG = Config(
 
 TEST_CONFIG = BASE_CONFIG._replace(
     config_name="test",
-    dump="2020-16",
-    output_dir=Path("test_data"),
+    dump="2019-09",
+    output_dir=Path("test_efficiency"),
     execution="local",
-    num_shards=128,
+    num_shards=96,
     num_segments_per_shard=1,
-    hash_in_mem=200, # 2
-    mine_num_processes=8, # 2
+    hash_in_mem=5, # 2
+    # mine_num_processes=8, # 2
     # lang_whitelist=["de", "it", "fr"],
-    lang_whitelist=["en"],
-    lm_languages=["en"],
-    target_size="32M",
-    cleanup_after_regroup=False,
-    cache_dir=Path("test_data/wet_cache"),
+    lang_whitelist=["zh","en","es","fr","it","de","ja","ko"],
+    # lm_languages=["en"],
+    target_size="4G",
+    # cleanup_after_regroup=False,
+    cache_dir=Path("test_efficiency/wet_cache"),
+    mine_num_processes=64,
+    pipeline=["dedup"] # "dedup", "lid", "keep_lang",
 )
 
 PREDEF_CONFIGS = {
@@ -230,7 +232,8 @@ PREDEF_CONFIGS = {
     ),
     "test_slow_hash": TEST_CONFIG._replace(pipeline=["lid"], cache_dir=Path("test_data_slow_hash/wet_cache"), output_dir=Path("test_data_slow_hash"), num_shards=4),
     "test_download": TEST_CONFIG._replace(pipeline=["lid"], cache_dir=Path("test_data_download/wet_cache"), output_dir=Path("test_data_download"), num_shards=8, num_segments_per_shard=2),
-    "test_lazy": TEST_CONFIG._replace(cache_dir=Path("test_lazy/wet_cache"), output_dir=Path("test_lazy"), num_shards=4, num_segments_per_shard=-1)
+    "test_lazy": TEST_CONFIG._replace(cache_dir=Path("test_lazy/wet_cache"), output_dir=Path("test_lazy"), num_shards=4, num_segments_per_shard=-1),
+    "test_private": TEST_CONFIG._replace(pipeline=["dedup"], cache_dir=Path("test_efficiency/wet_cache"), output_dir=Path("test_private")),
 }
 
 
@@ -474,7 +477,13 @@ def _mine_shard(conf: Config, hashes: List[Path], shard: int, output: Path) -> s
         # The splitter takes care of writing to files.
         output=tmp_output if not conf.will_split else None,
     )
+    
+    logger.info("I am finalize outputs")
+    time_start = time.time()
     finalize(tmp_output, output)
+    time_end = time.time()
+    logger.info(f"Done finalize outputs in {time_end-time_start:.2f} sec")
+
     return f"Mined {output}"
 
 
@@ -671,7 +680,7 @@ def main(config: str = "base", **config_as_dict: Any) -> None:
     all_files = mine(conf)
     # time_end = time.time()
 
-    print(f"Total mine time= {time_end-time_start:.2f} sec")
+    # print(f"Total mine time= {time_end-time_start:.2f} sec")
 
     if conf.will_split:
         assert all_files

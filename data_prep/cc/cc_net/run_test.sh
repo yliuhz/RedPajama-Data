@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXP_NAME="test_efficiency_128"
+EXP_NAME="test_efficiency"
 
 RESUME=$1
 # echo $RESUME
@@ -15,4 +15,4 @@ else
     echo "resume from last run"
 fi
 
-python -u  -m cc_net --config config/$EXP_NAME.json 2>&1 | tee -a logs/final_5_pipelines_$EXP_NAME.log
+python -u -m cc_net --config config/test_efficiency_1998.json 2>&1 | tee -a logs/test_efficiency_96.log
