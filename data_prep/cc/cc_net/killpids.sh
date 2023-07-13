@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PNAME=/root/miniconda3
+PNAME=/home/data/liuyue/miniconda3
 
 ps axf | grep $PNAME | grep -v grep > pids.txt
 

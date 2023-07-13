@@ -39,6 +39,7 @@ def cc_segments(dump_id: str, cache_dir: Path = None) -> List[str]:
     wet_paths = cc_wet_paths_url(dump_id)
     cache_dir = cache_dir or jsonql._tmp_dir()
     wet_paths_cache = cache_dir / f"wet_{dump_id}.paths.gz"
+    logger.info(f"cache_dir={cache_dir}, wet_paths_cache={wet_paths_cache}")
     f = jsonql.open_remote_file(wet_paths, cache=wet_paths_cache)
     return [segment.strip() for segment in f]
 

@@ -245,16 +245,10 @@ class Transformer:
         if x is None:
             return
         
-        self.log(f"I am in do in transformer")
-        time_start = time.time()
         y = self.do(x)
-        time_end1 = time.time()
-        self.log(f"I have done in {time_end1-time_start:.2f} sec")
         self.processed += 1
         if time.time() - self.__last_log > self._log_freq:
             self.log_summary()
-        time_end2 = time.time()
-        self.log(f"I have output log in {time_end2-time_end1:.2f} sec")
         return y
 
     def do(self, x):

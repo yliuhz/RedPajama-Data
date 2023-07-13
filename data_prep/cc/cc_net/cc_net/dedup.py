@@ -427,15 +427,10 @@ class DuplicatesRemover(jsonql.Transformer):
         )
 
     def do(self, doc: dict) -> Optional[dict]:
-        time_start = time.time()
-
         content = doc.get(self.field)
         if not content:
             return None
         doc_hashes = compute_hashes(content)
-
-        time_end1 = time.time()
-        logger.info(f"dup do step 1: {time_end1-time_start:.2f} sec")
 
         assert self.duplicates is not None
         seen = (
@@ -451,15 +446,10 @@ class DuplicatesRemover(jsonql.Transformer):
         self.n_lines += keep.size
         self.n_lines_kept += kept
 
-        time_end2 = time.time()
-        logger.info(f"dup do step 2: {time_end2-time_end1:.2f} sec")
-
         chars, kept_chars = finalize_doc(doc, self.field, hashes=doc_hashes)
         self.n_chars += chars
         self.n_chars_kept += kept_chars
 
-        time_end3 = time.time()
-        logger.info(f"dup do step 3: {time_end3-time_end2:.2f} sec")
         return doc
 
     def summary(self) -> List[str]:

@@ -10,6 +10,9 @@ import func_argparse
 import cc_net.mine
 
 import logging
+import os
+
+os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 logging.basicConfig(
     level=logging.DEBUG,

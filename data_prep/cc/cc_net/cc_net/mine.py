@@ -285,8 +285,10 @@ def hashes(conf: Config) -> List[Path]:
     ex(_hashes_shard, repeat(conf), *_transpose(missing_outputs))
 
     # Wait a bit so that files appears on the disk.
-    time.sleep(20)
-    assert all(o.exists() for o in outputs)
+    time.sleep(20) # 20
+    # assert all(o.exists() for o in outputs)
+    for o in outputs:
+        assert o.exists(), f"{o} not exist"
     return outputs
 
 
